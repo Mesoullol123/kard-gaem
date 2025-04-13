@@ -1,0 +1,1575 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .game-container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        .player-hp {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .used-cards,
+        .player-hand,
+        .dot-output,
+        .bypass-output {
+            margin: 20px 0;
+        }
+
+        .card-area {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .card {
+            width: 120px;
+            /* Set width for the card */
+            margin: 10px;
+            cursor: pointer;
+            /* Change cursor to pointer */
+        }
+
+        .draw-card {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        #draw-card-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #draw-card-button:hover {
+            background-color: #0056b3;
+        }
+
+        .future-cards {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+        }
+
+        .next-card {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #d1e7dd;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .used-card-image {
+            width: 120px;
+            /* Set width for the used card image */
+            margin: 10px;
+        }
+
+        .dot-output,
+        .bypass-output {
+            padding: 10px;
+            text-align: left;
+            /* Align text to the left */
+        }
+
+        .damage-output h5 {
+            margin: 0 10px;
+            /* Adjust margin as needed */
+        }
+
+        .button-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            /* Add some space above the button group */
+        }
+
+        .description-box {
+            position: fixed;
+            /* Position it absolutely */
+            top: 25%;
+            /* Space from the top */
+            right: 20px;
+            /* Space from the right side */
+            width: 200px;
+            /* Set a fixed width for the description box */
+            height: 300px;
+            /* Match the height of the card */
+            background-color: #e0e0e0;
+            /* Background color */
+            border-radius: 5px;
+            /* Rounded corners */
+            padding: 10px;
+            /* Padding inside the box */
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            /* Optional shadow for better visibility */
+            display: none;
+            /* Initially hidden */
+            z-index: 10;
+            /* Ensure it appears above other elements */
+        }
+    </style>
+</head>
+
+<body>
+    <div class="game-container">
+        <div class="turn-display">
+            <h3>Current Turn: <span id="current-turn">0</span></h3>
+        </div>
+        <div class="player-hp">
+            <h2>Player's HP: <span id="player-hp"></span></h2> <!-- Displaying the HP -->
+            <div>
+                <input type="number" id="hp-input" placeholder="Set HP" min="0" />
+                <button onclick="setPlayerHP()">Set HP</button>
+            </div>
+        </div>
+        <div class="damage-output">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h5>Total Damage Output: <span id="total-damage">0</span></h5>
+                <h5>Bypass DMG Output: <span id="bypass-output">0</span></h5>
+                <h5>Total Defend Output: <span id="total-defend">0</span></h5>
+                <h5>D.O.T Output: <span id="dot-output">0D/0T</span></h5>
+            </div>
+            <div class="button-group">
+                <button onclick="clearDamage()">Clear DMG</button>
+                <button onclick="resetBypassDamage()">Reset BP DMG</button>
+                <button onclick="clearDefend()">Clear DEF</button>
+                <button id="turn-pass-button" onclick="turnPass()">Turn Pass</button>
+            </div>
+        </div>
+        <div class="used-cards">
+            <h3>Used Cards</h3>
+            <div class="card-area" id="used-cards-area">
+                <!-- Used cards will be displayed here -->
+            </div>
+            <button onclick="clearUsedCards()">Clear Used Cards</button>
+        </div>
+        <div class="draw-card">
+            <button id="draw-card-button" onclick="drawCard()">Draw Card</button>
+        </div>
+        <div class="player-hand">
+            <h3>Your Hand</h3>
+            <div class="card-area" id="player-hand-area">
+                <!-- Drawn cards will be displayed here -->
+            </div>
+        </div>
+        <center>
+            <div class="description-box" id="description-box">
+                <h3 id="card-title">Card Description</h3>
+                <p id="card-detail">Detail: "blank"</p>
+                <p id="card-quote">Quote: "blank"</p>
+        </center>
+    </div>
+    <div class="next-card" id="next-card-area" style="display: none;">
+        <h3>Next Card to Draw</h3>
+        <div id="next-card"></div>
+    </div>
+    <div class="future-cards" id="future-cards-area" style="display: none;">
+        <h3>Next 3 Cards</h3>
+        <div class="card-area" id="next-cards-area">
+            <!-- Next cards will be displayed here -->
+        </div>
+    </div>
+    </div>
+
+    <script>
+        let deck = [];
+        let drawnCards = [];
+        let playerHP = Math.floor(Math.random() * (120 - 80 + 1)) + 80; // Random HP between 80 and 120
+        document.getElementById('player-hp').innerText = playerHP; // Display the initial HP
+        let turn = 0; // Initialize turn counter
+        let totalDamage = 0; // Initialize total damage output
+        let totalDefend = 0; // Initialize total defend output
+        let bypassDamage = 0; // Initialize bypass damage output
+
+        // Global variable to track special effects
+        let dotDamage = 0;
+        let dotTurns = 0;
+
+        // Card images mapping
+        const cardImages = {
+            "Copper Sword": "CopperSword.jpg",
+            "Keyboard": "Keyboard.jpg",
+            "Bomb": "Bomb.jpg",
+            "Hitman's Pocket": "HitmanPocket.jpg",
+            "Cross": "Cross.jpg",
+            "Miku Beam": "MikuBeam.jpg",
+            "Sniper": "Sniper.jpg",
+            "B.O.B": "BOB.jpg",
+            "Suck's Shotgun": "SuckShotgun.jpg",
+            "Edga Scarf": "EdgaScarf.jpg",
+            "Splash Potion of Weakness": "PotionWeakness.jpg",
+            "Lance of Longinus": "LanceOfLonginus.jpg",
+            "Biker's Fault": "BikerFault.jpg",
+            "Social Credit": "SocialCredit.jpg",
+            "Spear of Saul": "SpearOfSaul.jpg",
+            "Wuhan Roulette": "WuhanRoulette.jpg",
+            "Russian Roulette": "RussianRoulette.jpg",
+            "Steel Ball": "SteelBall.jpg",
+            "Pokeball": "Pokeball.jpg",
+            "Trumpet of Judgement": "TrumpetOfJudgement.jpg",
+            "Dimension Sword": "DimensionSword.jpg",
+            "Hotdog": "Hotdog.jpg",
+            "Marksman Revolver": "MarksmanRevolver.jpg",
+            "John Wick’s Pencil": "JohnWickPencil.jpg",
+            "Pinwheel Saw": "PinwheelSaw.jpg",
+            "Blood Scythe": "BloodScythe.jpg",
+            "Murasama": "Murasama.jpg",
+            "Dragon Slayer Sword": "DragonSlayerSword.jpg",
+            "Magic Bullet": "MagicBullet.jpg",
+            "Butterfly Knife": "ButterflyKnife.jpg",
+            "Wonder of U": "WonderOfU.jpg",
+            "Red Dead Redemption": "RedDeadRedemption.jpg",
+            "Rock": "Rock.jpg",
+            "Water Potion": "WaterPotion.jpg",
+            "Love Train": "LoveTrain.jpg",
+            "Mexican Minister of Defense": "MexicanMinisterOfDefense.jpg",
+            "AT Field": "AtField.jpg",
+            "Berlin Wall": "BerlinWall.jpg",
+            "Uno Reverse Card": "UnoReverseCard.jpg",
+            "Asgardian Aegis": "AsgardianAegis.jpg",
+            "Gothica": "Gothica.jpg",
+            "Late by 2 Steps": "LateByTwoSteps.jpg",
+            "IQ's Nintendo": "IQNintendo.jpg",
+            "Baby Oil": "BabyOil.jpg",
+            "IQ's Dog": "IQDog.jpg",
+            "Lego Brick": "LegoBrick.jpg",
+            "Cake": "Cake.jpg",
+            "Yakuza": "Yakuza.jpg",
+            "Black Cat": "BlackCat.jpg",
+            "Mysterious Man": "MysteriousMan.jpg",
+            "Exodia 1": "Exodia1.jpg",
+            "Exodia 2": "Exodia2.jpg",
+            "Exodia 3": "Exodia3.jpg",
+            "Exodia 4": "Exodia4.jpg",
+            "Exodia 5": "Exodia5.jpg",
+            "Basketball": "Basketball.jpg",
+            "Card": "Card.jpg",
+            "Destiny Draw": "DestinyDraw.jpg",
+            "Bad Move": "BadMove.jpg",
+            "Equality": "Equality.jpg",
+            "Bank Note": "BankNote.jpg",
+            "Free Robux Code": "FreeRobuxCode.jpg",
+            "Feet": "Feet.jpg",
+            "Architect’s Inhalant": "ArchitectInhalant.jpg",
+            "King Crimson": "KingCrimson.jpg",
+            "Eye of Cthulhu": "EyeOfCthulhu.jpg",
+            "Nostrade": "Nostrade.jpg",
+            "Stand Arrow": "StandArrow.jpg",
+            "20 Face Die": "20FaceDie.jpg",
+            "Hand's Fate": "HandFate.jpg",
+            "Die": "Die.jpg",
+            // Add other cards here...
+        };
+
+        // Unique attack cards with names and damage ranges
+        const attackCards = [
+            {name: "Copper Sword", damageRange: [5, 10]},
+            {name: "Keyboard", damageRange: [10, 15]},
+            {name: "Bomb", damageRange: [15, 15]},
+            {name: "Hitman's Pocket", damageRange: [2, 5]}, // Hitman's Pocket can do 2-5 Bypass damage
+            {name: "Cross", damageRange: [3, 7]}, // Cross card can do 3-7 Bypass Attack DMG
+            {name: "Miku Beam", damageRange: [10, 15]}, // Miku Beam can do 10-15 Bypass damage
+            {name: "Sniper", damageRange: [30, 30]},
+            {name: "B.O.B", damageRange: [7, 9]},
+            {name: "Suck's Shotgun", damageRange: [9, 54]},
+            {name: "Edga Scarf", damageRange: [7, 14]},
+            {name: "Splash Potion of Weakness", damageRange: [20, 25]},
+            {name: "Lance of Longinus", damageRange: [12, 16]},
+            {name: "Biker's Fault", damageRange: [12, 15]},
+            {name: "Social Credit", damageRange: [10, 13]},
+            {name: "Spear of Saul", damageRange: [18, 22]},
+            {name: "Wuhan Roulette", damageRange: [25, 30]},
+            {name: "Russian Roulette", damageRange: [10, 15]},
+            {name: "Steel Ball", damageRange: [10, 14]},
+            {name: "Pokeball", damageRange: [8, 12]},
+            {name: "Trumpet of Judgement", damageRange: [6, 10]},
+            {name: "Dimension Sword", damageRange: [10, 15]},
+            {name: "Hotdog", damageRange: [7, 14]},
+            {name: "Marksman Revolver", damageRange: [5, 15]},
+            {name: "John Wick’s Pencil", damageRange: [5, 10]},
+            {name: "Pinwheel Saw", damageRange: [10, 50]},
+            {name: "Blood Scythe", damageRange: [10, 20]},
+            {name: "Murasama", damageRange: [10, 15]},
+            {name: "Dragon Slayer Sword", damageRange: [20, 23]},
+            {name: "Magic Bullet", damageRange: [15, 20]},
+            {name: "Butterfly Knife", damageRange: [1, 50]}
+        ];
+
+        // Unique defend cards with names and damage reduction values
+        const defendCards = [
+            {name: "Wonder of U", damageReduction: 5},
+            {name: "Red Dead Redemption", damageReduction: 7},
+            {name: "Rock", damageReduction: [10, 20]},
+            {name: "Water Potion", damageReduction: 6},
+            {name: "Love Train", damageReduction: 8},
+            {name: "Mexican Minister of Defense", damageReduction: 12},
+            {name: "AT Field", damageReduction: 9},
+            {name: "Berlin Wall", damageReduction: 11},
+            {name: "Uno Reverse Card", damageReduction: 4},
+            {name: "Asgardian Aegis", damageReduction: 15}
+        ];
+
+        // Unique trap cards with names and descriptions
+        const trapCards = [
+            {name: "Gothica", description: "description"},
+            {name: "Late by 2 Steps", description: "description"},
+            {name: "IQ's Nintendo", description: "description"},
+            {name: "Baby Oil", description: "description"},
+            {name: "IQ's Dog", description: "description"},
+            {name: "Lego Brick", description: "description"},
+            {name: "Cake", description: "description"},
+            {name: "Yakuza", description: "description"},
+            {name: "Black Cat", description: "description"},
+            {name: "Mysterious Man", description: "description"}
+        ];
+
+        // Unique draw cards with names and abilities
+        const drawCards = [
+            {name: "Card", ability: "25% chance to draw 3 cards from the deck."},
+            {name: "Bad Move", ability: "Choose to draw 1 or 2 cards from the deck."},
+            {name: "Bank Note", ability: "Draw 1 card from the deck."}
+        ];
+
+        // Unique opponent draw cards with names and abilities
+        const opponentDrawCards = [
+            {name: "Free Robux Code", ability: "Opponent draws a random number of cards between 1 and 5."},
+            {name: "Equality", ability: "Opponent draws 2 cards, and you draw 1 card."},
+            {name: "Destiny Draw", ability: "Opponent draws cards until they get a Trap card."}
+        ];
+
+        // Unique skip turn cards with names and abilities
+        const skipTurnCards = [
+            {name: "King Crimson", ability: "Opponent's next turn is guaranteed to be skipped."},
+            {name: "Feet", ability: "10% chance to skip opponent's next turn."},
+            {name: "Architect’s Inhalant", ability: "25% chance to skip opponent's next turn."}
+        ];
+
+        // Unique see future cards with names and abilities
+        const seeFutureCards = [
+            {name: "Eye of Cthulhu", ability: "80% chance to see the next 3 cards."},
+            {name: "Nostrade", ability: "See the next 3 cards but lose 10 HP."},
+            {name: "Stand Arrow", ability: "50% chance to see the next card, 30% chance to lose 1-5 HP, or 20% chance to draw 3 cards."}
+        ];
+
+        // Unique shuffle cards with names and abilities
+        const shuffleCards = [
+            {name: "20 Face Die", ability: "5% chance to shuffle the deck and reset Player's HP to 100."},
+            {name: "Hand's Fate", ability: "Guaranteed shuffle."},
+            {name: "Die", ability: "50% chance to shuffle the deck."}
+        ];
+
+        // Unique cards that cannot be used
+        const uniqueCards = [
+            {name: "Exodia 1", description: "A powerful card that cannot be used."},
+            {name: "Exodia 2", description: "A powerful card that cannot be used."},
+            {name: "Exodia 3", description: "A powerful card that cannot be used."},
+            {name: "Exodia 4", description: "A powerful card that cannot be used."},
+            {name: "Exodia 5", description: "A powerful card that cannot be used."},
+            {name: "Basketball", description: "A fun card that cannot be used."}
+        ];
+
+        // Initialize the deck of cards
+        function createDeck() {
+            deck = [];
+
+            // Add unique attack cards
+            for (let i = 0; i < attackCards.length; i++) {
+                deck.push({type: "Attack", name: attackCards[i].name, damageRange: attackCards[i].damageRange});
+            }
+
+            // Add unique defend cards
+            for (let i = 0; i < defendCards.length; i++) {
+                deck.push({type: "Defend", name: defendCards[i].name, damageReduction: defendCards[i].damageReduction});
+            }
+
+            // Add unique trap cards
+            for (let i = 0; i < trapCards.length; i++) {
+                deck.push({type: "Trap", name: trapCards[i].name, description: trapCards[i].description});
+            }
+
+            // Add unique draw cards
+            for (let i = 0; i < drawCards.length; i++) {
+                deck.push({type: "Draw", name: drawCards[i].name, ability: drawCards[i].ability});
+            }
+
+            // Add unique opponent draw cards
+            for (let i = 0; i < opponentDrawCards.length; i++) {
+                deck.push({type: "Opponent Draw", name: opponentDrawCards[i].name, ability: opponentDrawCards[i].ability});
+            }
+
+            // Add unique skip turn cards
+            for (let i = 0; i < skipTurnCards.length; i++) {
+                deck.push({type: "Skip Turn", name: skipTurnCards[i].name, ability: skipTurnCards[i].ability});
+            }
+
+            // Add unique see future cards
+            for (let i = 0; i < seeFutureCards.length; i++) {
+                deck.push({type: "See Future", name: seeFutureCards[i].name, ability: seeFutureCards[i].ability});
+            }
+
+            // Add unique shuffle cards
+            for (let i = 0; i < shuffleCards.length; i++) {
+                deck.push({type: "Shuffle", name: shuffleCards[i].name, ability: shuffleCards[i].ability});
+            }
+
+            // Add unique cards that cannot be used
+            for (let i = 0; i < uniqueCards.length; i++) {
+                deck.push({type: "Unique", name: uniqueCards[i].name, description: uniqueCards[i].description});
+            }
+
+            shuffleDeck();
+        }
+
+        // Shuffle the deck
+        function shuffleDeck() {
+            for (let i = deck.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [deck[i], deck[j]] = [deck[j], deck[i]];
+            }
+        }
+
+        // Draw a card from the deck
+        function drawCard() {
+            if (deck.length === 0) {
+                alert("No more cards in the deck.");
+                return;
+            }
+            const card = deck.pop();
+            drawnCards.push(card);
+            displayCard(card);
+            turn++; // Increment the turn counter
+            updateTurnDisplay(); // Update the turn display
+            // Check if the drawn card is a Trap card
+            if (card.type === "Trap") {
+                useCard(card); // Use the Trap card immediately
+            }
+        }
+
+        // Display the drawn card in the player's hand
+        function displayCard(card) {
+            const playerHandArea = document.getElementById('player-hand-area');
+            const cardElement = document.createElement('div');
+            cardElement.className = 'card';
+            cardElement.setAttribute('data-card-name', card.name); // Add data attribute
+            cardElement.innerHTML = `<img src="${cardImages[card.name]}" alt="${card.name}" class="card">`; // Use the card image
+
+            // Add single-click event to the card element
+            cardElement.onclick = () => {
+                updateDescriptionBox(card); // Update the description box with card details
+            };
+            // Add double-click event to the card element
+            cardElement.ondblclick = () => {
+                useCard(card);
+            }; // Change to double-click
+
+            playerHandArea.appendChild(cardElement);
+
+        }
+
+        // Function to update the description box with card details
+        function updateDescriptionBox(card) {
+            const descriptionBox = document.getElementById('description-box');
+            const cardTitle = document.getElementById('card-title');
+            const cardDetail = document.getElementById('card-detail');
+            const cardQuote = document.getElementById('card-quote');
+
+            // Retrieve the quote and detail from the cardDescriptions object
+            const description = cardDescriptions[card.name];
+
+            cardTitle.innerText = card.name;
+
+            if (description) {
+                cardDetail.innerText = `${description.detail}`; // Set the detail
+                cardQuote.innerText = `"${description.quote}"`; // Set the quote
+            } else {
+                cardDetail.innerText = `"No detail available."`;
+                cardQuote.innerText = `"No description available."`;
+            }
+
+            // Show the description box
+            descriptionBox.style.display = 'block';
+        }
+
+        // Generate random damage within the specified range
+        function getRandomDamage(damageRange) {
+            const minDamage = damageRange[0];
+            const maxDamage = damageRange[1];
+            return Math.floor(Math.random() * (maxDamage - minDamage + 1)) + minDamage;
+        }
+
+        const cardDescriptions = {
+            "Copper Sword": {
+                quote: "The Beginning of Terraria",
+                detail: "5-10 dmg"
+            },
+            "Keyboard": {
+                quote: "Reasonable crash out!",
+                detail: "10-15 dmg, 15% chance: DoT 2d/2t"
+            },
+            "Bomb": {
+                quote: "Allahu akbar!",
+                detail: "deal 15 dmg and lose 15 hp"
+            },
+            "Hitman's Pocket": {
+                quote: "You will never know.",
+                detail: "2-5 bypass dmg, stackable"
+            },
+            "Cross": {
+                quote: "Devil may cry.",
+                detail: "3-7 dmg, 3-7 heal, 3-7 armor"
+            },
+            "Miku Beam": {
+                quote: "1...2...3...ready? miku miku beammmmmmmmmm",
+                detail: "10-15 bypass dmg"
+            },
+            "Sniper": {
+                quote: "2 นาฬิกา ฟาเรนไฮต์ อุณหภูมิ 155 เซลเซียส เเรงปืน 32 อุณหภูมิความชื้น 22 นาฬิกาปาดขวายิงเพื่อหวังผล เเตก! สวยพี่สวย",
+                detail: "30 dmg, 20% chance: miss, 15% chance: Headshot (+15 dmg)"
+            },
+            "B.O.B": {
+                quote: "A cool guy with a cool glasses.",
+                detail: "95% chance: 10 bypass dmg, 3% chance: immediately Win, 2% chance: immediately Lose"
+            },
+            "Suck's Shotgun": {
+                quote: "1000 times of pain and suffer, still wanna beat a sucker.",
+                detail: "9 dmg x 6 bullets, 20% chance miss each bullet"
+            },
+            "Edga Scarf": {
+                quote: "CEO of Brawl Stars.",
+                detail: "7-14 dmg and heal"
+            },
+            "Splash Potion of Weakness": {
+                quote: "With fermented spider eye, blaze powder and gun powder.",
+                detail: "DoT 3-5d/3t"
+            },
+            "Lance of Longinus": {
+                quote: "Depression.",
+                detail: "7-14 dmg and heal"
+            },
+            "Biker's Fault": {
+                quote: "Told you it's biker's fault!",
+                detail: "12-15 dmg, 50% chance: DoT 2d/3t"
+            },
+            "Social Credit": {
+                quote: "Redguard is watching.",
+                detail: "10-13 dmg"
+            },
+            "Spear of Saul": {
+                quote: "ts pmo.",
+                detail: "17 dmg, 50% chance: Miss"
+            },
+            "Wuhan Roulette": {
+                quote: "SARS-CoV-2 roulette.",
+                detail: "Dot 5d/3t"
+            },
+            "Russian Roulette": {
+                quote: "Minigame.",
+                detail: "16% chance: 10 dmg, stackable"
+            },
+            "Steel Ball": {
+                quote: "Ball of Steel.",
+                detail: "9 dmg, 2% chance: 99 dmg"
+            },
+            "Pokeball": {
+                quote: "Prepare for trouble, make it double!",
+                detail: "9 dmg, 2% chance: Win"
+            },
+            "Trumpet of Judgement": {
+                quote: "Bible pmo.",
+                detail: "60% chance: 10 dmg, 30% chance: 12 dmg, 7% chance: 15 dmg, 3% chance: 40 dmg"
+            },
+            "Dimension Sword": {
+                quote: "The sword that cuts through anything, even space and time.",
+                detail: "10-15 bypass dmg "
+            },
+            "Hotdog": {
+                quote: "A food that can hit and heal!",
+                detail: "7-14 dmg, 75% chance: heal 10 HP"
+            },
+            "Marksman Revolver": {
+                quote: "Ricochet!",
+                detail: "50% chance to shoot each coin, Miss All: 5 dmg, 1 coin: 10 dmg, 2 coins: 15 dmg, 3 coins: 20 dmg, 4 coins: 50 dmg"
+            },
+            "John Wick’s Pencil": {
+                quote: "Who would have thought that this thing can even kill people!",
+                detail: "5-10 dmg, 80% chance: additional 5 dmg"
+            },
+            "Pinwheel Saw": {
+                quote: "Death spins within.",
+                detail: "10 dmg, 50% to get additional 5 dmg (up to 4 times)"
+            },
+            "Blood Scythe": {
+                quote: "The harvester of blood and soul.",
+                detail: "10-20 dmg, 25% chance: heal 5-15 HP"
+            },
+            "Murasama": {
+                quote: "There will be blood!",
+                detail: "10-15 dmg, 50% chance: additional 5 dmg but you lose 5 HP"
+            },
+            "Dragon Slayer Sword": {
+                quote: "It was too big to be called a sword. Massive, thick, heavy, and far too rough.",
+                detail: "20 dmg, 80% chance: Miss"
+            },
+            "Magic Bullet": {
+                quote: "This magical bullet can truly hit anyone, just like you say.",
+                detail: "15 dmg, 3% chance: Lose"
+            },
+            "Butterfly Knife": {
+                quote: "A flick of the wrist can change everything.",
+                detail: "1 dmg, 5% chance: 50 dmg"
+            },
+            "Wonder of U": {
+                quote: "I am Calamity.",
+                detail: "If the enemy use atk card. Reverse dmg x2 unless nothing happen."
+            },
+            "Red Dead Redemption": {
+                quote: "A flick of the wrist can change everything.",
+                detail: "If in hand: The atk that make you Lose, will set your HP to 1 and the card gone."
+            },
+            "Rock": {
+                quote: "Metal rock.",
+                detail: "10-30 armor."
+            },
+            "Water Potion": {
+                quote: "Taste of snake oil extract.",
+                detail: "5-10 armor, 5-10 heal"
+            },
+            "Love Train": {
+                quote: "All of it is Justice!",
+                detail: "Immune all damage 1 turn!"
+            },
+            "Mexican Minister of Defense": {
+                quote: "Taco.",
+                detail: "60% chance: Immune all damage (Except INSTAKILL and BYPASS DAMAGE) 1 turn!"
+            },
+            "AT Field": {
+                quote: "Absolute Terror field.",
+                detail: "Immune all damage (Except INSTAKILL and BYPASS DAMAGE) 1 turn!"
+            },
+            "Berlin Wall": {
+                quote: "Destroyed btw.",
+                detail: "90% chance: Immune all damage (Except INSTAKILL and BYPASS DAMAGE) 1 turn!, 10% chance: deal 10 bypass dmg and loss 10 HP"
+            },
+            "Uno Reverse Card": {
+                quote: "NO U!",
+                detail: "50% chance to get 20 armor or lose 20 armor"
+            },
+            "Asgardian Aegis": {
+                quote: "Empowered by the cosmic inferno.",
+                detail: "0-30 armor, if this card can immune all dmg income, heal HP equal armor you have"
+            },
+            "Bank Note": {
+                quote: "1$? I'm rich now!",
+                detail: "draw 1 card "
+            },
+            "Bad Move": {
+                quote: "Skill issue.",
+                detail: "50% chance: draw 1-5 card, 50% chance: lose 10 HP"
+            },
+            "Card": {
+                quote: "I'm CARD.",
+                detail: "25% chance: draw 3 cards"
+            },
+            "Free Robux Code": {
+                quote: "Want free bobux? come scammyrobux.cum for free bobux.",
+                detail: "draw 1-5 card"
+            },
+            "Equality": {
+                quote: "Algebra.",
+                detail: "you draw 1 card but opponent draw 2 cards"
+            },
+            "Destiny Draw": {
+                quote: "Destiny Hero.",
+                detail: "draw until you get Attack card"
+            },
+            "King Crimson": {
+                quote: "I am an Emperor!",
+                detail: "skip your opponent's turn"
+            },
+            "Feet": {
+                quote: "Oil up.",
+                detail: "10% chance: skip your opponent's turn"
+            },
+            "Architect’s Inhalant": {
+                quote: "Inhalant for sale! only 50 baht!",
+                detail: "25% chance: skip your opponent's turn"
+            },
+            "Eye of Cthulhu": {
+                quote: "You feel an evil presence watching you.",
+                detail: "50% chance: see the next 1 card."
+            },
+            "Nostrade": {
+                quote: "Lore accurate nostradamus.",
+                detail: "lost 10 HP, see the next 3 cards."
+            },
+            "Stand Arrow": {
+                quote: "STANDO POWAH!!!",
+                detail: "50% chance: see the next 1 card, 30% chance: lose 1-5 HP, 20% chance: draw 3 cards"
+            },
+            "20 Face Die": {
+                quote: "All face is die!",
+                detail: "5% chance: shuffle and reset hp to between 80-120 HP"
+            },
+            "Hand's Fate": {
+                quote: "This fate is decided.",
+                detail: "draw the last card in your deck"
+            },
+            "Die": {
+                quote: "Have you studied Probability? Try to get an even number then",
+                detail: "50% chance: shuffle your deck"
+            }
+        };
+
+        // Use the card
+        function useCard(card) {
+            if (card.type === "Attack") {
+                if (card.name === "Copper Sword") {
+                    const damage = getRandomDamage(card.damageRange); // Get random damage
+                    totalDamage += damage; // Add to total damage output
+                    alert(`Copper Sword dealt ${damage} damage!`);
+                } else if (card.name === "Keyboard") {
+                    const damage = getRandomDamage(card.damageRange); // Get random damage
+                    totalDamage += damage; // Add to total damage output
+                    if (Math.random() < 0.15) { // 15% chance for D.O.T
+                        dotDamage += 2; // Apply D.O.T damage
+                        dotTurns += 2; // Apply D.O.T turns
+                        alert(`Keyboard dealt ${damage} damage and applied D.O.T: 2D/2T!`);
+                        updateDotOutput();
+                    } else {
+                        alert(`Keyboard dealt ${damage} damage!`);
+                    }
+                } else if (card.name === "Bomb") {
+                    const damage = 15; // Fixed damage
+                    playerHP -= 15; // Lose 15 HP
+                    totalDamage += damage; // Add to total damage output
+                    alert(`Bomb dealt ${damage} damage but you lost 15 HP!`);
+                } else if (card.name === "Hitman's Pocket") {
+                    const damage = getRandomDamage(card.damageRange); // Get random bypass damage
+                    bypassDamage += damage; // Add to bypass damage output
+                    // Update displays
+                    updateBypassOutput(); // Update bypass output display
+                    alert(`Hitman's Pocket dealt ${damage} bypass damage!`);
+                } else if (card.name === "Cross") {
+                    const bypassDamageValue = getRandomDamage([3, 7]); // Bypass damage
+                    const defendValue = getRandomDamage([3, 7]); // Defend output
+                    const healValue = getRandomDamage([3, 7]); // Heal Player's HP
+
+                    bypassDamage += bypassDamageValue; // Add to bypass damage output
+                    totalDefend += defendValue; // Add to total defend output
+                    playerHP += healValue; // Heal player HP (no max limit)
+
+                    // Update displays
+                    updateBypassOutput(); // Update bypass output display
+                    updateTotalDefend(); // Update the total defend display
+                    updatePlayerHP(); // Update the player's HP display
+
+                    alert(`Cross dealt ${bypassDamageValue} bypass damage, provided ${defendValue} defend output, and healed ${healValue} HP!`);
+                } else if (card.name === "Miku Beam") {
+                    const damage = getRandomDamage([10, 15]); // Bypass damage
+                    bypassDamage += damage; // Add to bypass damage output
+                    // Update displays
+                    updateBypassOutput(); // Update bypass output display
+                    alert(`Miku Beam dealt ${damage} bypass damage!`);
+                } else if (card.name === "Sniper") {
+                    const baseDamage = 30; // Base damage
+                    const critChance = Math.random();
+                    const missChance = Math.random();
+                    if (missChance < 0.2) {
+                        alert("Sniper missed! No damage dealt.");
+                    } else if (critChance < 0.15) {
+                        const totalDamage = baseDamage + 15; // Total damage is 45
+                        totalDamage += totalDamage;
+                        alert(`Sniper dealt ${totalDamage} damage!`);
+                    } else {
+                        totalDamage += baseDamage;
+                        alert(`Sniper dealt ${baseDamage} damage!`);
+                    }
+                } else if (card.name === "B.O.B") {
+                    const chance = Math.random();
+                    if (chance < 0.02) {
+                        alert("You immediately lose! BOB is literally hate you for real.");
+                        playerHP = 0; // Set HP to 0
+                    } else if (chance < 0.03) {
+                        totalDamage = "WIN"
+                        alert("You immediately win! BOB is so cool!");
+                    } else {
+                        const damage = getRandomDamage([7, 9]); // Bypass damage
+                        bypassDamage += damage; // Add to bypass damage output
+                        // Update displays
+                        updateBypassOutput(); // Update bypass output display
+                        alert(`B.O.B dealt ${damage} bypass damage!`);
+                    }
+                } else if (card.name === "Suck's Shotgun") {
+                    let totalShotgunDamage = 0;
+                    for (let i = 0; i < 6; i++) {
+                        if (Math.random() < 0.4) { // 40% chance to miss
+                            alert(`Shotgun bullet ${i + 1} missed!`);
+                        } else {
+                            totalShotgunDamage += 9; // Each bullet deals 9 damage
+                        }
+                    }
+                    totalDamage += totalShotgunDamage; // Add total damage from shotgun
+                    alert(`Suck's Shotgun dealt a total of ${totalShotgunDamage} damage!`);
+                } else if (card.name === "Edga Scarf") {
+                    const damage = getRandomDamage([7, 14]); // Random damage
+                    playerHP += damage; // Heal Player's HP
+                    totalDamage += damage; // Add to total damage output
+                    alert(`Edga Scarf dealt ${damage} damage and healed ${damage} HP!`);
+                } else if (card.name === "Splash Potion of Weakness") {
+                    const DOTdamage = getRandomDamage([3, 5]);
+                    dotDamage += DOTdamage; // Apply D.O.T damage
+                    dotTurns += 3; // Apply D.O.T turns
+                    alert(`Splash Potion of Weakness applied D.O.T: ${DOTdamage}D/3T!`);
+                    updateDotOutput();
+                } else if (card.name === "Lance of Longinus") {
+                    if (Math.random() < 0.03) { // 3% chance for INSTAKILL
+                        totalDamage = "INF";
+                        alert(`Lance of Longinus dealt INF damage and you win!`);
+                    } else {
+                        alert(`Lance of Longinus dealt 0 damage, Good Luck Next Time`);
+                    }
+                } else if (card.name === "Biker's Fault") {
+                    const damage = getRandomDamage(card.damageRange); // Get random damage
+                    totalDamage += damage; // Add to total damage output
+                    if (Math.random() < 0.50) { // 50% chance for D.O.T
+                        dotDamage += 2; // Apply D.O.T damage
+                        dotTurns += 3; // Apply D.O.T turns
+                        alert(`Biker's Fault dealt ${damage} damage and applied D.O.T: 2D/3T!`);
+                        updateDotOutput();
+                    } else {
+                        alert(`Biker's Fault dealt ${damage} damage!`);
+                    }
+                } else if (card.name === "Social Credit") {
+                    const damage = getRandomDamage(card.damageRange); // Get random damage
+                    totalDamage += damage; // Add to total damage output
+                    alert(`Social Credit dealt ${damage} damage!`);
+                } else if (card.name === "Spear of Saul") {
+                    if (Math.random() < 0.50) {
+                        totalDamage += 17;
+                        alert(`Spear of Saul dealt 17 damage.`);
+                    } else {
+                        alert(`Spear of Saul missed! No damage dealt.`);
+                    }
+                } else if (card.name === "Wuhan Roulette") {
+                    dotDamage += 5; // Apply D.O.T damage
+                    dotTurns += 3; // Apply D.O.T turns
+                    alert(`Wuhan Roulette applied D.O.T: 5D/3T!`);
+                    updateDotOutput();
+                } else if (card.name === "Russian Roulette") {
+                    if (Math.random() < 0.16) {
+                        totalDamage += 10;
+                        alert(`Russian Roulette dealt 10 damage.`);
+                    } else {
+                        alert(`Russian Roulette missed! No damage dealt.`);
+                    }
+                } else if (card.name === "Steel Ball") {
+                    if (Math.random() < 0.02) {
+                        totalDamage += 99;
+                        alert(`Steel Ball dealt 99 damage. Arigato Gyro!`);
+                    } else {
+                        alert(`Steel Ball dealt 9 damage.`);
+                    }
+                } else if (card.name === "Pokeball") {
+                    if (Math.random() < 0.02) {
+                        totalDamage = "WIN";
+                        alert(`Gotcha! Your opponent was caught!`);
+                    } else {
+                        alert(`Pokeball dealt 9 damage.`);
+                    }
+                } else if (card.name === "Trumpet of Judgement") {
+                    if (Math.random() < 0.03) {
+                        totalDamage += 40;
+                        alert(`Trumpet of Judgement dealt 40 damage!`);
+                    } else if (Math.random() < 0.07) {
+                        totalDamage += 15;
+                        alert(`Trumpet of Judgement dealt 15 damage!`);
+                    } else if (Math.random() < 0.30) {
+                        totalDamage += 12;
+                        alert(`Trumpet of Judgement dealt 12 damage!`);
+                    } else {
+                        totalDamage += 10;
+                        alert(`Trumpet of Judgement dealt 10 damage!`);
+                    }
+                } else if (card.name === "Dimension Sword") {
+                    const damage = getRandomDamage(card.damageRange); // Get random bypass damage
+                    bypassDamage += damage; // Add to bypass damage output
+                    // Update displays
+                    updateBypassOutput(); // Update bypass output display
+                    alert(`Dimension Sword ${damage} bypass damage!`);
+                } else if (card.name === "Hotdog") {
+                    const damage = getRandomDamage([7, 14]); // Random damage
+                    totalDamage += damage; // Add to total damage output
+                    if (Math.random() < 0.75) {
+                        playerHP += 10;
+                        alert(`Hotdog dealt ${damage} damage and healed 10 HP!`);
+                    } else {
+                        alert(`Hotdog dealt ${damage} damage!`);
+                    }
+                } else if (card.name === "Marksman Revolver") {
+                    if (Math.random() < 0.50) {
+                        totalDamage += 5;
+                        alert(`You missed all 4 coins and dealt 5 damage, Destructive!`);
+                    } else if (Math.random() < 0.50) {
+                        totalDamage += 10;
+                        alert(`You hit 1 coin and dealt 10 damage, Brutal!`);
+                    } else if (Math.random() < 0.50) {
+                        totalDamage += 15;
+                        alert(`You hit 2 coins and dealt 15 damage, Supreme!`);
+                    } else if (Math.random() < 0.50) {
+                        totalDamage += 20;
+                        alert(`You hit 3 coins and dealt 20 damage, SSShitstorm!`);
+                    } else {
+                        totalDamage += 50;
+                        alert(`You hit all 4 coins and dealt 50 damage, Ultrakill!`);
+                    }
+                } else if (card.name === "John Wick’s Pencil") {
+                    const baseDamage = getRandomDamage([5, 10]);
+                    if (Math.random() < 0.80) {
+                        const TotalDamage = baseDamage + 5;
+                        totalDamage += TotalDamage;
+                        alert(`John Wick’s Pencil stabbed your opponent's left ear and dealt ${TotalDamage} damage!`);
+                    } else {
+                        totalDamage += baseDamage
+                        alert(`John Wick’s Pencil dealt ${baseDamage} damage!`);
+                    }
+                } else if (card.name === "Pinwheel Saw") {
+                    let totalPinwheelDamage = 10;
+                    for (let i = 0; i < 4; i++) {
+                        if (Math.random() < 0.50) { // 50% chance to miss
+                            alert(`Pinwheel Saw's hit ${i + 1} missed!`);
+                        } else {
+                            totalPinwheelDamage += 5;
+                        }
+                    }
+                    totalDamage += totalPinwheelDamage; // Add total damage from shotgun
+                    alert(`Pinwheel Saw dealt a total of ${totalPinwheelDamage} damage!`);
+                } else if (card.name === "Blood Scythe") {
+                    const damage = getRandomDamage([10, 20]); // Random damage
+                    totalDamage += damage; // Add to total damage output
+                    if (Math.random() < 0.25) {
+                        const heal = getRandomDamage([5, 15]);
+                        playerHP += heal;
+                        alert(`Blood Scythe dealt ${damage} damage and healed ${heal} HP!`);
+                    } else {
+                        alert(`Blood Scythe dealt ${damage} damage!`);
+                    }
+                } else if (card.name === "Murasama") {
+                    const damage = getRandomDamage([10, 15]); // Random damage
+                    totalDamage += damage; // Add to total damage output
+                    if (Math.random() < 0.50) {
+                        totalDamage -= damage;
+                        bypassDamage += damage; // Add to bypass damage output
+                        updateBypassOutput(); // Update bypass output display
+                        playerHP -= 5;
+                        alert(`Murasama dealt ${damage} bypass damage but lost 5 HP!`);
+                    } else {
+                        alert(`Murasama dealt ${damage} damage!`);
+                    }
+                } else if (card.name === "Dragon Slayer Sword") {
+                    if (Math.random() < 0.50) {
+                        totalDamage += 20;
+                        alert(`Dragon Slayer Sword dealt 20 damage.`);
+                    } else {
+                        alert(`Dragon Slayer Sword missed! No damage dealt.`);
+                    }
+                } else if (card.name === "Magic Bullet") {
+                    if (Math.random() < 0.03) {
+                        playerHP = 0;
+                        alert(`Magic Bullet missed and shot yourself instead. You lose!`);
+                    } else {
+                        bypassDamage += 15;
+                        updateBypassOutput();
+                        alert(`Magic Bullet dealt 15 bypass damage!`);
+                    }
+                } else if (card.name === "Butterfly Knife") {
+                    if (Math.random() < 0.05) {
+                        totalDamage += 50;
+                        alert(`Butterfly Knife stabbed your opponent's back and dealt 50 damage!`);
+                    } else {
+                        totalDamage += 1;
+                        alert(`Butterfly Knife hit your opponent's face and dealt 1 damage.`);
+                    }
+                }
+
+
+
+
+
+                // Update the total damage display
+                updateTotalDamage(); // Update the total damage display
+            } else if (card.type === "Defend") {
+                if (card.name === "Wonder of U") {
+                    alert(`Wonder of U activated! The calamity has come.`);
+                } else if (card.name === "Red Dead Redemption") {
+                    playerHP = 1;
+                    alert(`Red Dead Redemption activated! Revived to 1 HP!`);
+                } else if (card.name === "Rock") {
+                    const defendValue = getRandomDamage([10, 20]); // Get the defend value
+                    totalDefend += defendValue; // Add to total defend output
+                    alert(`Rock gained ${defendValue} armor.`); // Show defend value
+                    updateTotalDefend(); // Update the total defend display
+                } else if (card.name === "Water Potion") {
+                    const defendValue = getRandomDamage([5, 10]); // Get the defend value
+                    totalDefend += defendValue; // Add to total defend output
+                    const Heal = getRandomDamage([5, 10]);
+                    playerHP += Heal
+                    alert(`Water Potion gained ${defendValue} armor and healed ${Heal} HP!`); // Show defend value
+                    updateTotalDefend(); // Update the total defend display
+                } else if (card.name === "Love Train") {
+                    totalDefend = "NULL";
+                    alert(`Love Train activated! Immuned all damage 1 turn!`); // Show defend value
+                    updateTotalDefend(); // Update the total defend display
+                } else if (card.name === "Mexican Minister of Defense") {
+                    if (Math.random() < 0.60) {
+                        totalDefend = "INF";
+                        alert(`Mexican Minister of Defense activated! Immuned all damage except INSTAKILL and BYPASS DAMAGE 1 turn!`);
+                        updateTotalDefend(); // Update the total defend display
+                    } else {
+                        alert(`Mexican Minister of Defense failed. No damage reduction!`);
+                    }
+                } else if (card.name === "AT Field") {
+                    totalDefend = "INF";
+                    alert(`At Field activated! Immuned all damage except INSTAKILL and BYPASS DAMAGE 1 turn!`);
+                    updateTotalDefend(); // Update the total defend display
+                } else if (card.name === "Berlin Wall") {
+                    if (Math.random() < 0.90) {
+                        totalDefend = "INF";
+                        alert(`Berlin Wall successed! Immuned all damage except INSTAKILL and BYPASS DAMAGE 1 turn!`);
+                        updateTotalDefend(); // Update the total defend display
+                    } else {
+                        playerHP -= 10;
+                        bypassDamage += 10;
+                        updateBypassOutput();
+                        alert(`Berlin Wall failed. Both of you and opponent lose 10 HP!`);
+                    }
+                } else if (card.name === "Uno Reverse Card") {
+                    if (Math.random() < 0.50) {
+                        totalDefend += 20;
+                        alert(`Uno Reverse Card successed! Gained 20 armor!`);
+                        updateTotalDefend(); // Update the total defend display
+                    } else {
+                        totalDefend -= 20;
+                        alert(`Uno Reverse Card failed! Lost 20 armor!`);
+                        updateTotalDefend(); // Update the total defend display
+                    }
+                } else if (card.name === "Asgardian Aegis") {
+                    const defendValue = getRandomDamage([0, 30]); // Get the defend value
+                    totalDefend += defendValue;
+                    alert(`Asgardian Aegis activated! Gained ${defendValue} armor!`);
+                    updateTotalDefend(); // Update the total defend display
+                }
+
+
+
+
+
+
+            }
+            else if (card.type === "Trap") {
+                if (card.name === "Gothica") {
+                    // Lose all cards in hand and draw 3 new cards
+                    drawnCards = []; // Clear the drawn cards
+                    const playerHandArea = document.getElementById('player-hand-area');
+                    playerHandArea.innerHTML = ''; // Clear the player's hand display
+                    alert(`Gothica activated! You lost all your cards and drew 3 new cards.`);
+                    drawCardFromDeck(3); // Draw 3 new cards
+                } else if (card.name === "Late by 2 Steps") {
+                    alert(`Late by 2 Steps activated! Ended your current turn.`);
+                } else if (card.name === "IQ's Nintendo") {
+                    if (Math.random() < 0.38) {
+                        alert(`IQ's Nintendo activated! Ended your next turn!`);
+                    } else {
+                        alert(`IQ's Nintendo activated! But Failed! Nothing Happened.`);
+                    }
+                } else if (card.name === "Baby Oil") {
+                    const damageself = getRandomDamage([5, 20]);
+                    playerHP -= damageself;
+                    alert(`Baby Oil activated! You lost ${damageself} HP!`);
+                } else if (card.name === "IQ's Dog") {
+                    const defendvalue = getRandomDamage([5, 10]);
+                    totalDefend -= defendvalue;
+                    updateTotalDefend();
+                    alert(`IQ's Dog activated! You lost ${defendvalue} armor!`);
+                } else if (card.name === "Lego Brick") {
+                    // Lose HP equal to the number of cards in hand
+                    const currentHandCount = drawnCards.length; // Get the number of cards in hand
+                    playerHP -= currentHandCount; // Subtract HP
+                    updatePlayerHP(); // Update the player's HP display
+                    alert(`Lego Brick activated! You lost ${currentHandCount} HP.`);
+                } else if (card.name === "Cake") {
+                    if (Math.random() < 0.50) {
+                        const heal = getRandomDamage([0, 5]);
+                        playerHP += heal;
+                        alert(`Cake activated! You ate the cake and it was very delicious! You healed ${heal} HP.`);
+                    } else {
+                        const damageself = getRandomDamage([7, 12]);
+                        playerHP -= damageself;
+                        alert(`Cake activated! You ate the cake and it was poisoned! You lost ${damageself} HP.`);
+                    }
+                } else if (card.name === "Yakuza") {
+                    // Lose the 3 oldest cards in hand
+                    const cardsToRemove = Math.min(3, drawnCards.length); // Ensure we don't remove more than we have
+                    drawnCards.splice(0, cardsToRemove); // Remove the oldest cards
+                    const playerHandArea = document.getElementById('player-hand-area');
+                    playerHandArea.innerHTML = ''; // Clear the player's hand display
+                    // Re-display the remaining cards
+                    drawnCards.forEach(card => displayCard(card));
+                    alert(`Yakuza activated! You lost the 3 oldest cards in your hand.`);
+                } else if (card.name === "Black Cat") {
+                    // Lose 10% of current HP
+                    const hpLoss = Math.floor(playerHP * 0.10); // Calculate 10% of current HP
+                    playerHP -= hpLoss; // Subtract HP
+                    updatePlayerHP(); // Update the player's HP display
+                    alert(`Black Cat activated! You lost ${hpLoss} HP.`);
+                } else if (card.name === "Mysterious Man") {
+                    if (Math.random() < 0.99) {
+                        alert(`Mysterious Man activated! Nothing happened, but you feel an aura of someone smiling at you!`);
+                    } else {
+                        alert(`Mysterious Man activated! But you got 1% chance! You immediately lost!`);
+                    }
+                }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            } else if (card.type === "Draw") {
+                if (card.name === "Bank Note") {
+                    drawCardFromDeck(1);
+                    alert(`You drew 1 cards!`);
+                } else if (card.name === "Bad Move") {
+                    const drawCount = getRandomDamage([1, 5]);
+                    const chance = Math.random();
+                    if (chance < 0.50) {
+                        drawCardFromDeck(drawCount);
+                        alert(`You made a good move! you drew ${drawCount} cards!`);
+                    } else {
+                        playerHP -= 10
+                        alert(`You made a wrong move. you lost 10 HP. Bad move!`);
+                    }
+                } else if (card.name === "Card") {
+                    const chance = Math.random();
+                    if (chance < 0.25) {
+                        drawCardFromDeck(3);
+                        alert(`You drew 3 cards!`);
+                    } else {
+                        alert(`You didn't draw 3 cards. Try again!`);
+                    }
+                }
+
+
+
+
+
+
+
+
+            } else if (card.type === "Skip Turn") {
+                if (card.name === "King Crimson") {
+                    alert(`Opponent's next turn is guaranteed to be skipped!`);
+                } else if (card.name === "Feet") {
+                    const chance = Math.random();
+                    if (chance < 0.1) {
+                        alert(`Opponent's next turn is skipped due to a Feet!`);
+                    } else {
+                        alert(`Opponent's turn is not skipped.`);
+                    }
+                } else if (card.name === "Architect’s Inhalant") {
+                    const chance = Math.random();
+                    if (chance < 0.25) {
+                        alert(`Opponent's next turn is skipped due to a Architect’s Inhalant!`);
+                    } else {
+                        alert(`Opponent's next turn is not skipped.`);
+                    }
+                }
+
+
+
+
+
+            } else if (card.type === "See Future") {
+                if (card.name === "Eye of Cthulhu") {
+                    const chance = Math.random();
+                    if (chance < 0.5) {
+                        const nextCards = deck.slice(-1); // Get the next 1 cards
+                        alert(`You can see the next 1 card: ${nextCards.map(c => c.name).join(', ')}`);
+                    } else {
+                        alert("You failed to see the next 1 card.");
+                    }
+                } else if (card.name === "Nostrade") {
+                    playerHP -= 10; // Lose 10 HP
+                    updatePlayerHP();
+                    const nextCards = deck.slice(-3); // Get the next 3 cards
+                    alert(`You lost 10 HP. You can see the next 3 cards: ${nextCards.map(c => c.name).join(', ')}`);
+                } else if (card.name === "Stand Arrow") {
+                    const chance = Math.random();
+                    if (chance < 0.5) {
+                        const nextCard = deck[deck.length - 1]; // Get the next card to be drawn
+                        alert(`You can see the next card: ${nextCard.name}`);
+                    } else if (chance < 0.8) {
+                        const hpLoss = Math.floor(Math.random() * 5) + 1; // Lose 1-5 HP
+                        playerHP -= hpLoss;
+                        updatePlayerHP();
+                        alert(`You lost ${hpLoss} HP.`);
+                    } else {
+                        drawCardFromDeck(3); // Draw 3 cards
+                        alert("You have to draw 3 cards.");
+                    }
+                }
+
+
+
+
+
+
+
+            } else if (card.type === "Shuffle") {
+                if (card.name === "20 Face Die") {
+                    const chance = Math.random();
+                    if (chance < 0.05) { // 5% chance
+                        shuffleDeck();
+                        playerHP = Math.floor(Math.random() * (120 - 80 + 1)) + 80; // Reset Player's HP to random between 80 and 120
+                        alert("Deck shuffled and Player's HP reset!");
+                    } else {
+                        alert("20 Face Die did not activate.");
+                    }
+                } else if (card.name === "Hand's Fate") {
+                    if (deck.length > 0) {
+                        const drawnCard = deck[0]; // Get the furthest card (bottom card in the deck)
+                        drawnCards.push(drawnCard); // Add the drawn card to the player's hand
+                        displayCard(drawnCard); // Display the drawn card
+                        alert(`You drew the last card in your deck: ${drawnCard.name}`);
+
+                        // Optionally, remove the card from the deck if you want to simulate drawing it
+                        deck.shift(); // Remove the card from the deck
+                    } else {
+                        alert("No cards left in the deck to draw.");
+                    }
+                } else if (card.name === "Die") {
+                    const chance = Math.random();
+                    if (chance < 0.5) { // 50% chance
+                        shuffleDeck();
+                        alert("Deck shuffled!");
+                    } else {
+                        alert("Die did not activate.");
+                    }
+                }
+
+
+
+
+
+
+
+
+            } else if (card.type === "Opponent Draw") {
+                if (card.name === "Free Robux Code") {
+                    const drawCount = Math.floor(Math.random() * 5) + 1; // Random number between 1 and 5
+                    alert(`You drew ${drawCount} cards.`);
+                    drawCardFromDeck(drawCount); // Simulate opponent drawing cards
+                } else if (card.name === "Equality") {
+                    alert("Opponent draws 2 cards, and you draw 1 card.");
+                    drawCardFromDeck(1); // Player draws 1 card
+                } else if (card.name === "Destiny Draw") {
+                    let drawnTrap = false;
+                    let drawCount = 0;
+                    while (!drawnTrap && deck.length > 0) {
+                        const drawnCard = deck.pop(); // Draw a card from the deck
+                        drawnCards.push(drawnCard); // Add the drawn card to the player's hand
+                        displayCard(drawnCard); // Display the drawn card
+                        drawCount++;
+
+                        if (drawnCard.type === "Attack") {
+                            drawnTrap = true; // Stop drawing if an Attack card is drawn
+                            alert(`You drew ${drawCount} card and got ${drawnCard.name}.`);
+                        }
+                    }
+                    if (!drawnTrap) {
+                        alert("No Attack cards left in the deck. No cards were drawn.");
+                    }
+                }
+            }
+
+
+
+
+
+
+
+
+
+
+
+            // Move the card to used cards after using it
+            addToUsedCards(card); // Add to used cards
+            removeCardFromHand(card); // Remove from hand
+            updatePlayerHP();
+        }
+
+
+
+
+        // Function to update the bypass damage output display
+        function updateBypassOutput() {
+            document.getElementById('bypass-output').innerText = bypassDamage;
+        }
+
+        // Function to reset bypass damage output
+        function resetBypassDamage() {
+            bypassDamage = 0; // Reset bypass damage
+            updateBypassOutput(); // Update the display
+
+        }
+
+        // Function to update the DOT output display
+        function updateDotOutput(damagePerTurn, turns) {
+            document.getElementById('dot-output').innerText = `${dotDamage}D/${dotTurns}T`;
+
+        }
+
+
+        // Function to handle the "Turn Pass" button
+        function turnPass() {
+            if (dotDamage && dotTurns > 0) {
+                dotTurns--; // Decrease the number of turns left
+                if (dotTurns === 0) {
+                    dotDamage = 0; // Reset the effect
+                    updateDotOutput(0, 0); // Reset DOT output
+                } else {
+                    updateDotOutput(dotDamage, dotTurns); // Update DOT output
+                }
+            }
+        }
+
+        // Update the total damage display
+        function updateTotalDamage() {
+            document.getElementById('total-damage').innerText = totalDamage;
+        }
+
+        // Clear the total damage output
+        function clearDamage() {
+            totalDamage = 0; // Reset total damage
+            updateTotalDamage(); // Update the display
+        }
+
+        // Update the total defend display
+        function updateTotalDefend() {
+            document.getElementById('total-defend').innerText = totalDefend;
+        }
+
+        // Clear the total defend output
+        function clearDefend() {
+            totalDefend = 0; // Reset total defend
+            updateTotalDefend(); // Update the display
+        }
+
+        // Clear all used cards
+        function clearUsedCards() {
+            const usedCardsArea = document.getElementById('used-cards-area');
+            usedCardsArea.innerHTML = ''; // Clear all used cards
+        }
+
+
+        // Update increase Turn
+        function updateTurnDisplay() {
+            document.getElementById('current-turn').innerText = turn;
+        }
+
+
+        // Handle the Shuffle card logic
+        function handleShuffle(card) {
+            if (card.name === "20 Face Die") {
+                const chance = Math.random();
+                if (chance < 0.05) { // 5% chance
+                    shuffleDeck();
+                    playerHP = Math.floor(Math.random() * (120 - 80 + 1)) + 80; // Reset Player's HP to random between 80 and 120
+                    alert("Deck shuffled and Player's HP reset!");
+                } else {
+                    alert("20 Face Die did not activate.");
+                }
+            } else if (card.name === "Hand's Fate") {
+                shuffleDeck(); // Guaranteed shuffle
+                alert("Deck shuffled!"); // Notify the player
+            } else if (card.name === "Die") {
+                const chance = Math.random();
+                if (chance < 0.5) { // 50% chance
+                    shuffleDeck();
+                    alert("Deck shuffled!");
+                } else {
+                    alert("Die did not activate.");
+                }
+            }
+        }
+
+        // Handle the See Future card logic
+        function handleSeeFuture(card) {
+            if (card.name === "Eye of Cthulhu") {
+                const chance = Math.random();
+                if (chance < 0.5) {
+                    const nextCards = deck.slice(-1); // Get the next 1 cards
+                    alert(`You can see the next 1 card: ${nextCards.map(c => c.name).join(', ')}`);
+                } else {
+                    alert("You failed to see the next 1 card.");
+                }
+            } else if (card.name === "Nostrade") {
+                playerHP -= 10; // Lose 10 HP
+                updatePlayerHP();
+                const nextCards = deck.slice(-3); // Get the next 3 cards
+                alert(`You lost 10 HP. You can see the next 3 cards: ${nextCards.map(c => c.name).join(', ')}`);
+            } else if (card.name === "Stand Arrow") {
+                const chance = Math.random();
+                if (chance < 0.5) {
+                    const nextCard = deck[deck.length - 1]; // Get the next card to be drawn
+                    alert(`You can see the next card: ${nextCard.name}`);
+                } else if (chance < 0.8) {
+                    const hpLoss = Math.floor(Math.random() * 5) + 1; // Lose 1-5 HP
+                    playerHP -= hpLoss;
+                    updatePlayerHP();
+                    alert(`You lost ${hpLoss} HP.`);
+                } else {
+                    drawCardFromDeck(3); // Draw 3 cards
+                    alert("You have to draw 3 cards.");
+                }
+            }
+        }
+
+        // Update the player's HP display
+        function updatePlayerHP() {
+            document.getElementById('player-hp').innerText = `${playerHP}`; // Display current HP
+        }
+
+        // Set player's HP from input
+        function setPlayerHP() {
+            const hpInput = document.getElementById('hp-input').value;
+            if (hpInput !== "") {
+                playerHP = Math.max(0, parseInt(hpInput)); // Ensure HP is not negative
+                updatePlayerHP();
+                document.getElementById('hp-input').value = ''; // Clear input field
+            }
+        }
+
+        // Add the used card to the Used Cards section
+        function addToUsedCards(card) {
+            const usedCardsArea = document.getElementById('used-cards-area');
+            const cardElement = document.createElement('div');
+            cardElement.className = 'card';
+            cardElement.innerHTML = `<img src="${cardImages[card.name]}" alt="${card.name}" class="used-card-image">`; // Use the card image
+            usedCardsArea.appendChild(cardElement);
+        }
+
+        // Remove the used card from the player's hand
+        function removeCardFromHand(card) {
+            const playerHandArea = document.getElementById('player-hand-area');
+            const cards = playerHandArea.getElementsByClassName('card');
+            for (let i = 0; i < cards.length; i++) {
+                // Check the data attribute to find the correct card
+                if (cards[i].getAttribute('data-card-name') === card.name) {
+                    playerHandArea.removeChild(cards[i]);
+                    break;
+                }
+            }
+        }
+
+        // Draw a specified number of cards from the deck
+        function drawCardFromDeck(num) {
+            for (let i = 0; i < num; i++) {
+                if (deck.length === 0) {
+                    alert("No more cards in the deck.");
+                    break;
+                }
+                const card = deck.pop();
+                drawnCards.push(card);
+                displayCard(card);
+            }
+        }
+
+        // Handle the Skip Turn card logic
+        function handleSkipTurn(card) {
+            if (card.name === "King Crimson") {
+                alert(`Opponent's next turn is guaranteed to be skipped!`);
+            } else if (card.name === "Feet") {
+                const chance = Math.random();
+                if (chance < 0.1) {
+                    alert(`Opponent's next turn is skipped due to a Feet!`);
+                } else {
+                    alert(`Opponent's turn is not skipped.`);
+                }
+            } else if (card.name === "Architect’s Inhalant") {
+                const chance = Math.random();
+                if (chance < 0.25) {
+                    alert(`Opponent's next turn is skipped due to a Architect’s Inhalant!`);
+                } else {
+                    alert(`Opponent's next turn is not skipped.`);
+                }
+            }
+        }
+        // Handle the Opponent Draw card logic
+        function handleOpponentDraw(card) {
+            if (card.name === "Random Draw 1-5 Cards") {
+                const drawCount = Math.floor(Math.random() * 5) + 1; // Random number between 1 and 5
+                alert(`Opponent draws ${drawCount} cards.`);
+                drawCardFromDeck(drawCount); // Simulate opponent drawing cards
+            } else if (card.name === "Opponent Draw 2 Cards, Player Draw 1") {
+                alert("Opponent draws 2 cards, and you draw 1 card.");
+                drawCardFromDeck(2); // Opponent draws 2 cards
+                drawCardFromDeck(1); // Player draws 1 card
+            } else if (card.name === "Destiny Draw") {
+                let drawnTrap = false;
+                while (!drawnTrap && deck.length > 0) {
+                    const card = deck.pop();
+                    drawnCards.push(card);
+                    if (card.type === "Attack") {
+                        drawnTrap = true;
+                        alert(`Opponent drew a attack card: ${card.name}`);
+                    }
+                }
+                if (!drawnTrap) {
+                    alert("No trap cards left in the deck.");
+                }
+            }
+        }
+
+        // Initialize the game
+        createDeck(); // Create the deck at the start of the game
+    </script>
+</body>
+
+</html>
