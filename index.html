@@ -225,7 +225,7 @@
             "Sniper": "Sniper.jpg",
             "B.O.B": "BOB.jpg",
             "Suck's Shotgun": "SuckShotgun.jpg",
-            "Edga Scarf": "EdgaScarf.jpg",
+            "Edgar Scarf": "EdgaScarf.jpg",
             "Splash Potion of Weakness": "PotionWeakness.jpg",
             "Lance of Longinus": "LanceOfLonginus.jpg",
             "Biker's Fault": "BikerFault.jpg",
@@ -301,7 +301,7 @@
             {name: "Sniper", damageRange: [30, 30]},
             {name: "B.O.B", damageRange: [7, 9]},
             {name: "Suck's Shotgun", damageRange: [9, 54]},
-            {name: "Edga Scarf", damageRange: [7, 14]},
+            {name: "Edgar Scarf", damageRange: [7, 14]},
             {name: "Splash Potion of Weakness", damageRange: [20, 25]},
             {name: "Lance of Longinus", damageRange: [12, 16]},
             {name: "Biker's Fault", damageRange: [12, 15]},
@@ -556,14 +556,14 @@
                 detail: "30 dmg, 20% chance: miss, 15% chance: Headshot (+15 dmg)"
             },
             "B.O.B": {
-                quote: "A cool guy with a cool glasses.",
+                quote: "Nigger!",
                 detail: "95% chance: 10 bypass dmg, 3% chance: immediately Win, 2% chance: immediately Lose"
             },
             "Suck's Shotgun": {
                 quote: "1000 times of pain and suffer, still wanna beat a sucker.",
                 detail: "9 dmg x 6 bullets, 20% chance miss each bullet"
             },
-            "Edga Scarf": {
+            "Edgar Scarf": {
                 quote: "CEO of Brawl Stars.",
                 detail: "7-14 dmg and heal"
             },
@@ -576,7 +576,7 @@
                 detail: "7-14 dmg and heal"
             },
             "Biker's Fault": {
-                quote: "Told you it's biker's fault!",
+                quote: "Biker's fault!",
                 detail: "12-15 dmg, 50% chance: DoT 2d/3t"
             },
             "Social Credit": {
@@ -652,7 +652,7 @@
                 detail: "If the enemy use atk card. Reverse dmg x2 unless nothing happen."
             },
             "Red Dead Redemption": {
-                quote: "A flick of the wrist can change everything.",
+                quote: "This Town Ain't Big Enough for Both of Us",
                 detail: "If in hand: The atk that make you Lose, will set your HP to 1 and the card gone."
             },
             "Rock": {
@@ -863,7 +863,7 @@
                     }
                     totalDamage += totalShotgunDamage; // Add total damage from shotgun
                     alert(`Suck's Shotgun dealt a total of ${totalShotgunDamage} damage!`);
-                } else if (card.name === "Edga Scarf") {
+                } else if (card.name === "Edgar Scarf") {
                     const damage = getRandomDamage([7, 14]); // Random damage
                     playerHP += damage; // Heal Player's HP
                     totalDamage += damage; // Add to total damage output
@@ -1055,7 +1055,7 @@
                     alert(`Wonder of U activated! The calamity has come.`);
                 } else if (card.name === "Red Dead Redemption") {
                     playerHP = 1;
-                    alert(`Red Dead Redemption activated! Revived to 1 HP!`);
+                    alert(`Red Dead Redemption activated! Revived to 1 HP! Thank you -Arthur`);
                 } else if (card.name === "Rock") {
                     const defendValue = getRandomDamage([10, 20]); // Get the defend value
                     totalDefend += defendValue; // Add to total defend output
@@ -1137,7 +1137,7 @@
                 } else if (card.name === "Baby Oil") {
                     const damageself = getRandomDamage([5, 20]);
                     playerHP -= damageself;
-                    alert(`Baby Oil activated! You lost ${damageself} HP!`);
+                    alert(`Baby Oil activated! You lost ${damageself} HP! Oil up lil bro.`);
                 } else if (card.name === "IQ's Dog") {
                     const defendvalue = getRandomDamage([5, 10]);
                     totalDefend -= defendvalue;
@@ -1255,7 +1255,7 @@
                     const chance = Math.random();
                     if (chance < 0.5) {
                         const nextCards = deck.slice(-1); // Get the next 1 cards
-                        alert(`You can see the next 1 card: ${nextCards.map(c => c.name).join(', ')}`);
+                        alert(`Eye of Cthulhu has awoken! The next card is ${nextCards.map(c => c.name).join(', ')}`);
                     } else {
                         alert("You failed to see the next 1 card.");
                     }
